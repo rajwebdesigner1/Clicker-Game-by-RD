@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clicker Game</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        text-align: center;
+        color: #333;
+    }
+    #gameContainer {
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1, h2 {
+        color: #333;
+    }
+    #leaderboard {
+        margin-top: 20px;
+        text-align: left;
+    }
+    #startButton, #clickButton, #refreshButton {
+        background-color: #87CEEB;
+        border: none;
+        color: #fff;
+        padding: 15px 30px;
+        text-align: center;
+        font-size: 24px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    #startButton:hover, #clickButton:hover, #refreshButton:hover {
+        background-color: #007bff;
+    }
+    #refreshButton {
+        background-color: #FF6347; /* Red color */
+        margin-top: 20px;
+    }
+    @media screen and (max-width: 600px) {
+        #startButton, #clickButton, #refreshButton {
+            padding: 10px 20px;
+            font-size: 18px;
+        }
+    }
+</style>
+</head>
+<body>
+
+<div id="gameContainer">
+    <h1>Leaderboard Game</h1>
+    <div id="nameInput">
+        <label for="playerName">Enter Your Name:</label>
+        <input type="text" id="playerName">
+        <button id="startButton" onclick="startGame()">Start Now</button>
+    </div>
+    <div id="gameArea" style="display: none;">
+        <p>Click the button as many times as you can in 10 seconds!</p>
+        <button id="clickButton" onclick="handleClick()">Click Me!</button>
+        <p>Time left: <span id="timer">10</span> seconds</p>
+        <p>Your score: <span id="score">0</span></p>
+    </div>
+    <div id="leaderboard">
+        <h2>Leaderboard</h2>
+        <ol id="leaderList"></ol>
+    </div>
+    <button id="refreshButton" onclick="location.reload()">Refresh</button>
+</div>
+
+<script>
+    let score = 0;
+    let timer = 10;
+    let intervalId;
+    let playerName = '';
+    let newRecord = false;
+
+    // Retrieve scores from local storage
+    let scores = JSON.parse(localStorage.getItem('scores')) || [];
+
+    function updateTimer() {
+        document.getElementById('timer').textContent = timer;
+        timer--;
+        if (timer < 0) {
+            clearInterval(intervalId);
+            document.getElementById('clickButton').disabled = true;
+            if (score > 0) {
+                addToLeaderboard(score);
+                saveScores();
+            }
+            if (newRecord) {
+                alert('Congratulations! You have set a new record!');
+            }
+        }
+    }
+
+    function handleClick() {
+        score++;
+        document.getElementById('score').textContent = score;
+    }
+
+    function addToLeaderboard(score) {
+        const leaderList = document.getElementById('leaderList');
+        const listItem = document.createElement('li');
+        listItem.textContent = `${playerName}: ${score}`;
+        leaderList.appendChild(listItem);
+
+        // Sort leaderboard
+        const items = leaderList.querySelectorAll('li');
+        const sortedItems = Array.from(items).sort((a, b) => {
+            const scoreA = parseInt(a.textContent.split(': ')[1]);
+            const scoreB = parseInt(b.textContent.split(': ')[1]);
+            return scoreB - scoreA;
+        });
+
+        leaderList.innerHTML = ''; // Clear leaderboard
+        sortedItems.forEach((item, index) => {
+            item.style.color = getRankColor(index);
+            leaderList.appendChild(item);
+        });
+    }
+
+    function startGame() {
+        playerName = document.getElementById('playerName').value;
+        if (playerName.trim() === '') {
+            alert('Please enter your name!');
+            return;
+        }
+        document.getElementById('nameInput').style.display = 'none';
+        document.getElementById('gameArea').style.display = 'block';
+        intervalId = setInterval(updateTimer, 1000);
+    }
+
+    function saveScores() {
+        scores.push({ name: playerName, score: score });
+        localStorage.setItem('scores', JSON.stringify(scores));
+        checkNewRecord();
+    }
+
+    function checkNewRecord() {
+        const playerIndex = scores.findIndex(entry => entry.name === playerName);
+        if (playerIndex !== -1) {
+            const playerScore = scores[playerIndex].score;
+            if (score > playerScore) {
+                newRecord = true;
+            }
+        }
+    }
+
+    function getRankColor(rank) {
+        switch (rank) {
+            case 0:
+                return 'gold';
+            case 1:
+                return 'silver';
+            case 2:
+                return 'bronze';
+            default:
+                return '#333';
+        }
+    }
+
+    // Populate leaderboard with existing scores
+    function populateLeaderboard() {
+        const leaderList = document.getElementById('leaderList');
+        leaderList.innerHTML = ''; // Clear leaderboard
+        scores
+            .filter(entry => entry.name !== undefined && entry.score !== undefined)
+            .sort((a, b) => b.score - a.score)
+            .forEach((score, index) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${score.name}: ${score.score}`;
+                listItem.style.color = getRankColor(index);
+                leaderList.appendChild(listItem);
+            });
+    }
+
+    populateLeaderboard(); // Populate leaderboard on page load
+</script>
+
+</body>
+</html>
